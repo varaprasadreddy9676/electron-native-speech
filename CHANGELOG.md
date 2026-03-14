@@ -6,6 +6,16 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ---
 
+## [0.1.4] — 2026-03-14
+
+### Added
+
+- **Package READMEs** — add npm-ready README files for `electron-native-speech`, `electron-native-speech-preload`, and `electron-native-speech-backend-macos`
+
+### Changed
+
+- **npm package pages** — publish fresh patch versions so each package renders its own README on npm instead of showing "No README data found!"
+
 ## [0.1.3] — 2026-03-14
 
 ### Changed
