@@ -1,6 +1,6 @@
 {
   "name": "electron-native-speech",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "description": "Native OS speech transcription for Electron apps — fast, local, no cloud required",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
