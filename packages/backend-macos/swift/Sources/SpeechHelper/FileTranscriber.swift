@@ -29,12 +29,16 @@ func handleTranscribeFile(id: String, command: [String: Any]) {
         return
     }
 
-    // Request authorization (triggers permission prompt if needed)
+    // Request authorization (triggers permission prompt if needed).
+    // Must be dispatched to the main thread — calling from a background queue
+    // causes SIGABRT on macOS 15 in subprocess contexts.
     let authSema = DispatchSemaphore(value: 0)
     var authStatus: SFSpeechRecognizerAuthorizationStatus = .notDetermined
-    SFSpeechRecognizer.requestAuthorization { status in
-        authStatus = status
-        authSema.signal()
+    DispatchQueue.main.async {
+        SFSpeechRecognizer.requestAuthorization { status in
+            authStatus = status
+            authSema.signal()
+        }
     }
     authSema.wait()
 
