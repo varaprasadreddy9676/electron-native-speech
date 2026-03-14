@@ -1,5 +1,5 @@
 {
-  "name": "@electron-native-speech/demo-electron",
+  "name": "electron-native-speech-demo",
   "version": "0.1.0",
   "private": true,
   "description": "Demo Electron app for electron-native-speech",
@@ -12,8 +12,8 @@
   },
   "license": "MIT",
   "dependencies": {
-    "@electron-native-speech/backend-macos": "*",
-    "@electron-native-speech/preload": "*",
+    "electron-native-speech-backend-macos": "*",
+    "electron-native-speech-preload": "*",
     "electron-native-speech": "*"
   },
   "devDependencies": {

@@ -23,12 +23,12 @@ Native OS speech transcription for Electron apps — fast, local, no cloud requi
 ### 1. Install
 
 ```bash
-npm install electron-native-speech @electron-native-speech/backend-macos
+npm install electron-native-speech electron-native-speech-backend-macos
 ```
 
 > On first install, run the Swift build step once:
 > ```bash
-> cd node_modules/@electron-native-speech/backend-macos
+> cd node_modules/electron-native-speech-backend-macos
 > npm run build:swift
 > ```
 > This compiles the native `SpeechHelper` binary (~130KB).
@@ -38,7 +38,7 @@ npm install electron-native-speech @electron-native-speech/backend-macos
 ```ts
 // main.ts
 import { ipcMain } from "electron"
-import { registerSpeechHandlers } from "@electron-native-speech/preload/dist/main-handlers"
+import { registerSpeechHandlers } from "electron-native-speech-preload/main-handlers"
 
 const cleanup = registerSpeechHandlers(ipcMain, win.webContents)
 app.on("before-quit", cleanup)
@@ -48,7 +48,7 @@ app.on("before-quit", cleanup)
 
 ```ts
 // preload.ts
-import { exposeElectronSpeech } from "@electron-native-speech/preload"
+import { exposeElectronSpeech } from "electron-native-speech-preload"
 exposeElectronSpeech() // exposes window.electronSpeech
 ```
 

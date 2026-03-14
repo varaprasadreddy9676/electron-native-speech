@@ -1,4 +1,4 @@
-import { exposeElectronSpeech } from "@electron-native-speech/preload"
+import { exposeElectronSpeech } from "electron-native-speech-preload"
 import { contextBridge, ipcRenderer } from "electron"
 
 // Expose the speech API under window.electronSpeech

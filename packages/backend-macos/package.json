@@ -1,5 +1,5 @@
 {
-  "name": "@electron-native-speech/backend-macos",
+  "name": "electron-native-speech-backend-macos",
   "version": "0.1.0",
   "description": "macOS backend for electron-native-speech using Apple Speech framework",
   "main": "dist/index.js",

@@ -1,6 +1,6 @@
 import { app, BrowserWindow, ipcMain, dialog } from "electron"
 import * as path from "path"
-import { registerSpeechHandlers } from "@electron-native-speech/preload/dist/main-handlers"
+import { registerSpeechHandlers } from "electron-native-speech-preload/main-handlers"
 
 let mainWindow: BrowserWindow | null = null
 let cleanupSpeech: (() => void) | null = null

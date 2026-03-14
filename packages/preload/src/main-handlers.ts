@@ -6,7 +6,7 @@
  *
  * @example
  * import { app, BrowserWindow, ipcMain } from "electron"
- * import { registerSpeechHandlers } from "@electron-native-speech/preload/main-handlers"
+ * import { registerSpeechHandlers } from "electron-native-speech-preload/main-handlers"
  *
  * app.whenReady().then(async () => {
  *   const win = new BrowserWindow({ webPreferences: { preload: "..." } })

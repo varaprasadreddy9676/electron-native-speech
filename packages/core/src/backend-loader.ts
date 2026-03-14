@@ -16,13 +16,13 @@ export function getBackend(): ISpeechBackend {
   if (platform === "darwin") {
     try {
       // eslint-disable-next-line @typescript-eslint/no-require-imports
-      const mod = require("@electron-native-speech/backend-macos")
+      const mod = require("electron-native-speech-backend-macos")
       _backend = new mod.MacOSSpeechBackend() as ISpeechBackend
       return _backend
     } catch {
       throwSpeechError(
         "unavailable",
-        "macOS speech backend not found. Run: npm install @electron-native-speech/backend-macos"
+        "macOS speech backend not found. Run: npm install electron-native-speech-backend-macos"
       )
     }
   }

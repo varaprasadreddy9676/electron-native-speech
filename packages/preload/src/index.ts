@@ -1,11 +1,11 @@
 /**
- * @electron-native-speech/preload
+ * electron-native-speech-preload
  *
  * Exposes speech recognition to the renderer through a secure contextBridge.
  *
  * Usage in your preload script:
  *
- *   import { exposeElectronSpeech } from "@electron-native-speech/preload"
+ *   import { exposeElectronSpeech } from "electron-native-speech-preload"
  *   exposeElectronSpeech()
  *
  * Then in the renderer:
