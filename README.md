@@ -55,6 +55,25 @@ The prebuilt `SpeechHelper` binary (~280 KB universal) ships inside the backend 
 
 > **Building from source?** If you want to build the Swift binary yourself (e.g. for CI or code signing workflows), see [CONTRIBUTING.md](CONTRIBUTING.md).
 
+## Try The Demo
+
+`npm install electron-native-speech` installs the library for your app.
+The runnable demo lives in this GitHub repo.
+
+To try it locally:
+
+```bash
+git clone https://github.com/varaprasadreddy9676/electron-native-speech
+cd electron-native-speech/examples/basic-electron-app
+npm install
+npm start
+```
+
+That opens a working Electron example with:
+
+- file transcription
+- live microphone transcription
+
 ---
 
 ## Quickstart

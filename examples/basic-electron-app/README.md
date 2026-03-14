@@ -16,6 +16,14 @@ npm start
 That's it. No build step. The start script patches Electron's dev `Info.plist`
 with the speech and microphone usage descriptions macOS requires.
 
+From the repo root:
+
+```bash
+cd examples/basic-electron-app
+npm install
+npm start
+```
+
 ## What you'll see
 
 A window with two panels:
