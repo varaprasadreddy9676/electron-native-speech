@@ -30,9 +30,9 @@ index.html (renderer)
     └── window.electronSpeech.*      ← exposed by preload.js via contextBridge
         └── ipcRenderer.invoke(...)
 preload.js
-    └── exposeElectronSpeech()       ← from electron-native-speech-preload
+    └── exposeElectronSpeech()       ← from electron-native-speech/preload
 main.js
-    └── registerSpeechHandlers()     ← from electron-native-speech-preload/main-handlers
+    └── registerSpeechHandlers()     ← from electron-native-speech/main-handlers
         └── electron-native-speech   ← calls Swift SpeechHelper binary
 ```
 

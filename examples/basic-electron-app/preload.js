@@ -1,7 +1,7 @@
 "use strict"
 
 const { contextBridge, ipcRenderer } = require("electron")
-const { exposeElectronSpeech } = require("electron-native-speech-preload")
+const { exposeElectronSpeech } = require("electron-native-speech/preload")
 
 // Exposes window.electronSpeech in the renderer
 exposeElectronSpeech()

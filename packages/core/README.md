@@ -8,7 +8,7 @@ This package provides the shared types and high-level API:
 - `transcribeFile()`
 - `createSpeechSession()`
 
-On macOS, it auto-loads `electron-native-speech-backend-macos` at runtime.
+On macOS, it installs and auto-loads the bundled backend at runtime.
 
 ## Install
 
@@ -16,12 +16,7 @@ On macOS, it auto-loads `electron-native-speech-backend-macos` at runtime.
 npm install electron-native-speech
 ```
 
-On macOS, the backend package is normally installed automatically as an optional dependency.
-If your environment skips optional dependencies, install it explicitly:
-
-```bash
-npm install electron-native-speech electron-native-speech-backend-macos
-```
+That single package install is the supported path for normal users.
 
 ## When to use this package
 
@@ -31,11 +26,10 @@ Use this package when you want:
 - direct access from Node or the Electron main process
 - a shared abstraction for custom backends or tests
 
-If you need to expose speech APIs to a context-isolated Electron renderer, also install:
+For Electron preload and main-process wiring, import the helpers from this package:
 
-```bash
-npm install electron-native-speech-preload
-```
+- `electron-native-speech/preload`
+- `electron-native-speech/main-handlers`
 
 ## Usage
 
@@ -136,8 +130,9 @@ Windows and Linux backends are not published yet.
 
 For a complete Electron integration with `contextIsolation: true`, use:
 
-- `electron-native-speech` for the shared API and types
-- `electron-native-speech-preload` for the preload bridge and IPC handlers
+- `electron-native-speech` for the shared API and runtime
+- `electron-native-speech/preload` for the preload bridge
+- `electron-native-speech/main-handlers` for IPC wiring in the main process
 
 Full documentation and examples:
 

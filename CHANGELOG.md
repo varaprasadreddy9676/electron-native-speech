@@ -6,6 +6,18 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ---
 
+## [0.1.5] — 2026-03-14
+
+### Changed
+
+- **Single-package install** — make `npm install electron-native-speech` the supported install path for normal users by moving the macOS backend and preload bridge to regular dependencies
+- **Main-package Electron helpers** — expose `registerSpeechHandlers` and `exposeElectronSpeech` from `electron-native-speech/main-handlers` and `electron-native-speech/preload`
+- **Examples and docs** — update the README, demo app, and basic example app to use only `electron-native-speech`
+
+### Fixed
+
+- User-facing install guidance that still pushed direct use of `electron-native-speech-preload` and `electron-native-speech-backend-macos`
+
 ## [0.1.4] — 2026-03-14
 
 ### Added

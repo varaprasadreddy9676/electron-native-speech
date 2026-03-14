@@ -22,7 +22,7 @@ export function getBackend(): ISpeechBackend {
     } catch {
       throwSpeechError(
         "unavailable",
-        "macOS speech backend not found. Run: npm install electron-native-speech-backend-macos"
+        "macOS speech backend not found. Reinstall electron-native-speech and verify dependencies were installed."
       )
     }
   }

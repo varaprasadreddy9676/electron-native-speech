@@ -49,7 +49,7 @@ The prebuilt binary ships with the package — `npm install` is all you need.
 npm install electron-native-speech
 ```
 
-That's it. `electron-native-speech-backend-macos` and `electron-native-speech-preload` are installed automatically as optional dependencies.
+That's it. The macOS backend and Electron preload bridge are installed automatically as internal dependencies.
 
 The prebuilt `SpeechHelper` binary (~280 KB universal) ships inside the backend package — no compilation step needed.
 
@@ -64,7 +64,7 @@ The prebuilt `SpeechHelper` binary (~280 KB universal) ships inside the backend 
 ```ts
 // main.ts
 import { app, BrowserWindow, ipcMain } from "electron"
-import { registerSpeechHandlers } from "electron-native-speech-preload/main-handlers"
+import { registerSpeechHandlers } from "electron-native-speech/main-handlers"
 
 let win: BrowserWindow
 
@@ -86,7 +86,7 @@ app.whenReady().then(() => {
 
 ```ts
 // preload.ts
-import { exposeElectronSpeech } from "electron-native-speech-preload"
+import { exposeElectronSpeech } from "electron-native-speech/preload"
 
 exposeElectronSpeech() // exposes window.electronSpeech
 ```

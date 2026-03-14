@@ -2,12 +2,15 @@
 
 macOS backend for `electron-native-speech`.
 
+Most users should not install this package directly.
+Install `electron-native-speech` and let it bring this backend in as an internal dependency.
+
 This package provides the native macOS implementation backed by Apple's Speech framework and AVFoundation.
 It also ships the bundled `SpeechHelper.app` helper used at runtime.
 
 ## Install
 
-Most apps should install the top-level package:
+Most apps should install only the top-level package:
 
 ```bash
 npm install electron-native-speech
@@ -15,7 +18,7 @@ npm install electron-native-speech
 
 Install this package directly if:
 
-- your environment skips optional dependencies
+- your environment requires an explicit backend dependency
 - you want to depend on the macOS backend explicitly
 - you are wiring the backend manually in tests or custom integrations
 
@@ -33,7 +36,7 @@ npm install electron-native-speech electron-native-speech-backend-macos
 
 ## Direct usage
 
-Usually, `electron-native-speech` loads this backend automatically on macOS.
+Usually, `electron-native-speech` loads this backend automatically on macOS and you should not reference this package directly.
 
 If you want to wire it explicitly:
 

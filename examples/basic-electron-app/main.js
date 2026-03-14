@@ -2,7 +2,7 @@
 
 const { app, BrowserWindow, ipcMain, dialog } = require("electron")
 const path = require("path")
-const { registerSpeechHandlers } = require("electron-native-speech-preload/main-handlers")
+const { registerSpeechHandlers } = require("electron-native-speech/main-handlers")
 
 let win = null
 let cleanupSpeech = null

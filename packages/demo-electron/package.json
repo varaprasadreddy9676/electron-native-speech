@@ -13,8 +13,6 @@
   },
   "license": "MIT",
   "dependencies": {
-    "electron-native-speech-backend-macos": "*",
-    "electron-native-speech-preload": "*",
     "electron-native-speech": "*"
   },
   "devDependencies": {

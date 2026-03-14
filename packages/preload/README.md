@@ -2,6 +2,12 @@
 
 Secure Electron preload bridge for `electron-native-speech`.
 
+Most users should not install this package directly.
+Install `electron-native-speech` and import the helpers from:
+
+- `electron-native-speech/preload`
+- `electron-native-speech/main-handlers`
+
 This package is the Electron-facing layer that:
 
 - exposes `window.electronSpeech` from your preload script
@@ -11,18 +17,14 @@ This package is the Electron-facing layer that:
 ## Install
 
 ```bash
-npm install electron-native-speech electron-native-speech-preload
-```
-
-On macOS you also need the backend package, which is usually installed automatically with `electron-native-speech`:
-
-```bash
-npm install electron-native-speech-backend-macos
+npm install electron-native-speech
 ```
 
 ## When to use this package
 
-Use this package if your Electron app has:
+Use this package directly only if you have an advanced integration and want to depend on the preload layer explicitly.
+
+The underlying use case is an Electron app with:
 
 - a preload script
 - a renderer that should not import Node APIs directly
@@ -35,7 +37,7 @@ Register the speech IPC handlers once your window is created:
 ```ts
 import path from "node:path"
 import { app, BrowserWindow, ipcMain } from "electron"
-import { registerSpeechHandlers } from "electron-native-speech-preload/main-handlers"
+import { registerSpeechHandlers } from "electron-native-speech/main-handlers"
 
 let cleanupSpeech: (() => void) | undefined
 
@@ -61,7 +63,7 @@ app.on("before-quit", () => {
 Expose the renderer-safe API:
 
 ```ts
-import { exposeElectronSpeech } from "electron-native-speech-preload"
+import { exposeElectronSpeech } from "electron-native-speech/preload"
 
 exposeElectronSpeech()
 ```

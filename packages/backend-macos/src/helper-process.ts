@@ -41,7 +41,7 @@ export class HelperProcess extends EventEmitter {
       }
     }
 
-    throw new Error("SpeechHelper.app not found. Reinstall electron-native-speech-backend-macos.")
+    throw new Error("SpeechHelper.app not found. Reinstall electron-native-speech and verify package resources are present.")
   }
 
   start(): Promise<void> {
