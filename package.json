@@ -1,0 +1,17 @@
+{
+  "name": "electron-native-speech-workspace",
+  "private": true,
+  "workspaces": [
+    "packages/*"
+  ],
+  "scripts": {
+    "build": "npm run build --workspaces --if-present",
+    "build:swift": "npm run build:swift --workspace packages/backend-macos",
+    "dev": "npm run dev --workspace packages/demo-electron",
+    "typecheck": "npm run typecheck --workspaces --if-present",
+    "clean": "npm run clean --workspaces --if-present"
+  },
+  "devDependencies": {
+    "typescript": "^5.4.0"
+  }
+}

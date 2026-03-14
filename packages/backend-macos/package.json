@@ -1,0 +1,25 @@
+{
+  "name": "@electron-native-speech/backend-macos",
+  "version": "0.1.0",
+  "description": "macOS backend for electron-native-speech using Apple Speech framework",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "files": [
+    "dist/",
+    "bin/"
+  ],
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "build:swift": "cd swift && swift build -c release --arch arm64 && swift build -c release --arch x86_64 && mkdir -p ../bin && lipo -create .build/arm64-apple-macosx/release/SpeechHelper .build/x86_64-apple-macosx/release/SpeechHelper -output ../bin/SpeechHelper",
+    "build:all": "npm run build:swift && npm run build",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "clean": "rm -rf dist bin"
+  },
+  "license": "MIT",
+  "devDependencies": {
+    "typescript": "^5.4.0"
+  },
+  "dependencies": {
+    "electron-native-speech": "*"
+  }
+}

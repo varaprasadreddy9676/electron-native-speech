@@ -1,0 +1,23 @@
+{
+  "name": "@electron-native-speech/preload",
+  "version": "0.1.0",
+  "description": "Electron preload bridge for electron-native-speech",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "files": [
+    "dist/"
+  ],
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "clean": "rm -rf dist"
+  },
+  "license": "MIT",
+  "devDependencies": {
+    "typescript": "^5.4.0",
+    "electron": ">=28.0.0"
+  },
+  "peerDependencies": {
+    "electron": ">=28.0.0"
+  }
+}

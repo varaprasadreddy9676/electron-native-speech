@@ -1,0 +1,23 @@
+{
+  "name": "@electron-native-speech/demo-electron",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Demo Electron app for electron-native-speech",
+  "main": "dist/main.js",
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "dev": "npm run build && electron .",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "clean": "rm -rf dist"
+  },
+  "license": "MIT",
+  "dependencies": {
+    "@electron-native-speech/backend-macos": "*",
+    "@electron-native-speech/preload": "*",
+    "electron-native-speech": "*"
+  },
+  "devDependencies": {
+    "typescript": "^5.4.0",
+    "electron": "^28.0.0"
+  }
+}
