@@ -46,8 +46,8 @@ export class MacOSLiveSpeechSession implements SpeechSession {
     this.setState("starting")
 
     const helper = getHelperProcess()
-    await ensureSpeechPermission()
     await helper.start()
+    await ensureSpeechPermission(helper)
 
     // Send the start command and get back a streaming session ID
     const sessionId = helper.sendStreaming({

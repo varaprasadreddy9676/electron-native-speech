@@ -6,6 +6,7 @@
   "main": "dist/main.js",
   "scripts": {
     "build": "tsc -p tsconfig.json",
+    "predev": "node ../../scripts/patch-electron-plist.js",
     "dev": "npm run build && electron .",
     "typecheck": "tsc -p tsconfig.json --noEmit",
     "clean": "rm -rf dist"

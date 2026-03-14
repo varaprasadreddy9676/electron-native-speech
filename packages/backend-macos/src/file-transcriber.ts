@@ -52,8 +52,8 @@ export async function transcribeFile(
   }
 
   const helper = getHelperProcess()
-  await ensureSpeechPermission()
   await helper.start()
+  await ensureSpeechPermission(helper)
 
   let raw: unknown
   try {

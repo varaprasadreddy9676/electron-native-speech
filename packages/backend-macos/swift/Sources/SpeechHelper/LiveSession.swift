@@ -40,13 +40,27 @@ final class LiveSession {
         }
 
         let micStatus = AVCaptureDevice.authorizationStatus(for: .audio)
-        guard micStatus == .authorized else {
+        if micStatus == .authorized {
+            DispatchQueue.global(qos: .userInteractive).async {
+                self.startRecognition()
+            }
+            return
+        }
+
+        guard micStatus == .notDetermined else {
             emitError(code: "permission-denied", message: "Microphone permission denied")
             return
         }
 
-        DispatchQueue.global(qos: .userInteractive).async {
-            self.startRecognition()
+        AVCaptureDevice.requestAccess(for: .audio) { [weak self] granted in
+            guard let self else { return }
+            guard granted else {
+                self.emitError(code: "permission-denied", message: "Microphone permission denied")
+                return
+            }
+            DispatchQueue.global(qos: .userInteractive).async {
+                self.startRecognition()
+            }
         }
     }
 

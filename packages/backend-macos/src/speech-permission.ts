@@ -1,89 +1,35 @@
-import { execFile } from "child_process"
-import * as fs from "fs"
-import * as os from "os"
-import * as path from "path"
-import { promisify } from "util"
 import { SpeechRecognitionError } from "electron-native-speech"
+import type { HelperProcess } from "./helper-process"
 
-const execFileAsync = promisify(execFile)
-
-let ensuredSpeechPermission = false
-
-function getHelperAppCandidates(): string[] {
-  const resourcesPath = (process as NodeJS.Process & { resourcesPath?: string }).resourcesPath
-
-  return [
-    resourcesPath ? path.join(resourcesPath, "SpeechHelper.app") : null,
-    path.join(__dirname, "..", "bin", "SpeechHelper.app"),
-    path.join(__dirname, "..", "..", "bin", "SpeechHelper.app"),
-  ].filter(Boolean) as string[]
+type AuthResult = {
+  authorized: boolean
+  status: string
 }
 
-function getHelperAppPath(): string {
-  for (const candidate of getHelperAppCandidates()) {
-    if (fs.existsSync(path.join(candidate, "Contents", "MacOS", "SpeechHelper"))) {
-      return candidate
-    }
-  }
+/**
+ * Asks the persistent SpeechHelper subprocess to call
+ * SFSpeechRecognizer.requestAuthorization on behalf of the Electron app.
+ *
+ * Because SpeechHelper is a child process of Electron, macOS TCC attributes
+ * the permission dialog to the responsible process — the Electron app —
+ * and uses its NSSpeechRecognitionUsageDescription from Info.plist.
+ *
+ * If the user has already granted permission the call returns immediately
+ * (no dialog shown), so it is safe to call on every transcription request.
+ */
+export async function ensureSpeechPermission(helper: HelperProcess): Promise<void> {
+  if (process.platform !== "darwin") return
 
-  throw new SpeechRecognitionError({
-    code: "backend-failure",
-    message: "SpeechHelper.app not found. Reinstall electron-native-speech-backend-macos.",
-  })
-}
+  // Allow up to 30 s for the user to respond to the system permission dialog
+  const raw = (await helper.send({ command: "requestSpeechAuth" }, 30_000)) as AuthResult
 
-function getHelperAppBinaryPath(): string {
-  return path.join(getHelperAppPath(), "Contents", "MacOS", "SpeechHelper")
-}
-
-function readAuthorizationResult(resultPath: string): boolean {
-  try {
-    const raw = fs.readFileSync(resultPath, "utf8")
-    const parsed = JSON.parse(raw) as { authorized?: boolean; status?: string }
-    if (parsed.authorized) return true
-
+  if (!raw.authorized) {
     throw new SpeechRecognitionError({
       code: "permission-denied",
       message:
-        parsed.status === "restricted"
+        raw.status === "restricted"
           ? "Speech recognition is restricted on this Mac."
           : "Speech recognition permission denied. Enable it in System Settings → Privacy & Security → Speech Recognition.",
     })
-  } catch (err) {
-    if (err instanceof SpeechRecognitionError) throw err
-    throw new SpeechRecognitionError({
-      code: "backend-failure",
-      message: "Failed to read speech authorization result from SpeechHelper.app.",
-      details: err,
-    })
-  } finally {
-    try {
-      fs.unlinkSync(resultPath)
-    } catch {
-      // Ignore cleanup errors for temporary files.
-    }
   }
-}
-
-export async function ensureSpeechPermission(): Promise<void> {
-  if (process.platform !== "darwin" || ensuredSpeechPermission) return
-
-  const helperBinaryPath = getHelperAppBinaryPath()
-  const resultPath = path.join(
-    os.tmpdir(),
-    `electron-native-speech-auth-${process.pid}-${Date.now()}.json`
-  )
-
-  try {
-    await execFileAsync(helperBinaryPath, [
-      "--request-speech-auth",
-      "--result-file",
-      resultPath,
-    ])
-  } catch {
-    // The helper exits non-zero when permission is denied. The result file contains the real status.
-  }
-
-  ensuredSpeechPermission = true
-  readAuthorizationResult(resultPath)
 }

@@ -98,12 +98,38 @@ class RendererSpeechSession {
   }
 }
 
+function createRendererSpeechSession(sessionId: string) {
+  const session = new RendererSpeechSession(sessionId)
+
+  return {
+    on<T extends SessionEventType>(event: T, listener: SessionListener<T>) {
+      return session.on(event, listener)
+    },
+
+    start(options?: SpeechSessionStartOptions) {
+      return session.start(options)
+    },
+
+    stop() {
+      return session.stop()
+    },
+
+    abort() {
+      return session.abort()
+    },
+
+    dispose() {
+      return session.dispose()
+    },
+  }
+}
+
 // ─── Public preload API ───────────────────────────────────────────────────────
 
 export interface ElectronSpeechAPI {
   getSpeechAvailability(): Promise<SpeechAvailability>
   transcribeFile(options: FileTranscriptionOptions): Promise<FileTranscriptionResult>
-  createSpeechSession(): RendererSpeechSession
+  createSpeechSession(): ReturnType<typeof createRendererSpeechSession>
 }
 
 /**
@@ -124,7 +150,7 @@ export function exposeElectronSpeech(key = "electronSpeech"): void {
 
     createSpeechSession() {
       const sessionId = `session-${Date.now()}-${++sessionCounter}`
-      return new RendererSpeechSession(sessionId)
+      return createRendererSpeechSession(sessionId)
     },
   }
 

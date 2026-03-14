@@ -9,6 +9,7 @@ const binaryPath = path.join(__dirname, "..", "bin", "SpeechHelper")
 const helperAppPath = path.join(__dirname, "..", "bin", "SpeechHelper.app")
 const helperAppBinaryPath = path.join(helperAppPath, "Contents", "MacOS", "SpeechHelper")
 const helperAppPlistPath = path.join(helperAppPath, "Contents", "Info.plist")
+const helperAppPkgInfoPath = path.join(helperAppPath, "Contents", "PkgInfo")
 
 if (process.platform !== "darwin") {
   // Not macOS — skip silently (Windows backend will be a separate package)
@@ -56,6 +57,14 @@ fs.writeFileSync(helperAppPlistPath, `<?xml version="1.0" encoding="UTF-8"?>
   <string>SpeechHelper</string>
   <key>CFBundlePackageType</key>
   <string>APPL</string>
+  <key>CFBundleShortVersionString</key>
+  <string>1.0</string>
+  <key>CFBundleVersion</key>
+  <string>1</string>
+  <key>LSMinimumSystemVersion</key>
+  <string>13.0</string>
+  <key>LSUIElement</key>
+  <true/>
   <key>NSMicrophoneUsageDescription</key>
   <string>This app accesses the microphone for live speech recognition.</string>
   <key>NSSpeechRecognitionUsageDescription</key>
@@ -63,6 +72,7 @@ fs.writeFileSync(helperAppPlistPath, `<?xml version="1.0" encoding="UTF-8"?>
 </dict>
 </plist>
 `)
+fs.writeFileSync(helperAppPkgInfoPath, "APPL????")
 execFileSync(
   "/usr/bin/codesign",
   ["--force", "--sign", "-", "--identifier", "dev.electron-native-speech.SpeechHelper", helperAppPath],

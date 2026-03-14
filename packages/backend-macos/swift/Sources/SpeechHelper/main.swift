@@ -1,62 +1,42 @@
 import Foundation
+import AppKit
 import Speech
 
 // SpeechHelper — persistent helper process for electron-native-speech
 //
 // Lifecycle:
-//   1. Starts up, emits { "type": "ready" }
-//   2. Reads newline-delimited JSON commands from stdin
-//   3. Writes newline-delimited JSON responses to stdout
-//   4. Runs until "shutdown" command or stdin EOF
+//   1. Starts up either over stdio (legacy/dev) or a localhost socket (app mode)
+//   2. Emits { "type": "ready" } once the transport is connected
+//   3. Reads newline-delimited JSON commands
+//   4. Writes newline-delimited JSON responses
+//   5. Runs until "shutdown" command or transport EOF
 
-if CommandLine.arguments.contains("--request-speech-auth") {
-    let args = Array(CommandLine.arguments.dropFirst())
-    let resultFilePath = args.drop { $0 != "--result-file" }.dropFirst().first
+let app = NSApplication.shared
+app.setActivationPolicy(.prohibited)
 
-    guard let resultFilePath else {
-        fputs("Missing --result-file for --request-speech-auth\n", stderr)
-        exit(2)
-    }
-
-    // IMPORTANT: Do NOT block the main thread with a semaphore here.
-    // SFSpeechRecognizer.requestAuthorization dispatches its completion handler
-    // to the main queue. Blocking the main thread with authSema.wait() prevents
-    // the callback from ever running → deadlock → SIGABRT on macOS 15.
-    // Instead, kick off the request and let RunLoop.main.run() process the callback.
-    SFSpeechRecognizer.requestAuthorization { status in
-        writeAuthorizationResult(filePath: resultFilePath, status: status)
-        exit(status == .authorized ? 0 : 1)
-    }
-
-    RunLoop.main.run()   // keeps process alive until exit() is called in the callback above
-    // Never reached:
-}
-
-sendReady()
-
-// File transcription runs on a background thread pool
-// Live sessions use their own AVAudioEngine + recognition task threads
-// Command dispatch is intentionally synchronous for file transcription
-// and async (fire-and-return) for live sessions
-
-readCommands { command in
+func dispatchCommand(_ command: [String: Any]) {
     guard let cmd = command["command"] as? String else { return }
     let id = command["id"] as? String ?? ""
 
     switch cmd {
     case "checkAvailability":
-        // Quick check — run inline
         handleCheckAvailability(id: id)
 
+    case "requestSpeechAuth":
+        Task { @MainActor in
+            let status = await requestSpeechAuthorization()
+            sendResult(id: id, payload: [
+                "authorized": status == .authorized,
+                "status": authorizationStatusString(status),
+            ])
+        }
+
     case "transcribeFile":
-        // File transcription can take seconds — run on a background thread
-        // so we can continue reading commands (e.g. for shutdown)
         DispatchQueue.global(qos: .userInitiated).async {
             handleTranscribeFile(id: id, command: command)
         }
 
     case "startSession":
-        // Live session setup is async internally
         handleStartSession(id: id, command: command)
 
     case "stopSession":
@@ -76,5 +56,19 @@ readCommands { command in
     }
 }
 
-// Keep the run loop alive for async work (live sessions, background transcription)
+let args = Array(CommandLine.arguments.dropFirst())
+let port = args.drop { $0 != "--port" }.dropFirst().first.flatMap(UInt16.init)
+
+if let port {
+    do {
+        try startSocketTransport(port: port, handler: dispatchCommand)
+    } catch {
+        fputs("Failed to start socket transport: \(error.localizedDescription)\n", stderr)
+        exit(1)
+    }
+} else {
+    sendReady()
+    readCommands(handler: dispatchCommand)
+}
+
 RunLoop.main.run()

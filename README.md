@@ -226,6 +226,8 @@ Add to your app's `Info.plist`:
 
 macOS will prompt the user the first time speech recognition is used. The user can manage this in **System Settings → Privacy & Security → Speech Recognition**.
 
+When running against the unbundled Electron binary in local development, make sure the host app's `Info.plist` also includes these keys. The example apps in this repo patch Electron's dev bundle automatically before launch.
+
 ---
 
 ## How it works
@@ -254,21 +256,21 @@ The Swift helper process starts once when the first call arrives and remains ali
 
 ## Packaged builds (electron-builder)
 
-When you package your app, include the `SpeechHelper` binary in your app's resources:
+When you package your app, include the `SpeechHelper.app` helper bundle in your app's resources:
 
 ```js
 // electron-builder.config.js
 module.exports = {
   extraResources: [
     {
-      from: "node_modules/electron-native-speech-backend-macos/bin/SpeechHelper",
-      to: "SpeechHelper",
+      from: "node_modules/electron-native-speech-backend-macos/bin/SpeechHelper.app",
+      to: "SpeechHelper.app",
     },
   ],
 }
 ```
 
-The backend automatically looks in `process.resourcesPath` when running packaged, and falls back to the local `bin/` directory in development.
+The backend automatically looks in `process.resourcesPath` when running packaged, and falls back to the local `bin/` directory in development. The helper must run from an app bundle so macOS can honor the speech and microphone usage descriptions.
 
 ---
 

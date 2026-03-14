@@ -13,7 +13,8 @@ npm install
 npm start
 ```
 
-That's it. No build step.
+That's it. No build step. The start script patches Electron's dev `Info.plist`
+with the speech and microphone usage descriptions macOS requires.
 
 ## What you'll see
 

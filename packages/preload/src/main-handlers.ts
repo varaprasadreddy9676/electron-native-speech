@@ -15,7 +15,6 @@
  */
 
 import type { IpcMain, WebContents } from "electron"
-import { systemPreferences } from "electron"
 import {
   getSpeechAvailability,
   transcribeFile,
@@ -23,6 +22,7 @@ import {
 } from "electron-native-speech"
 import type { SpeechSession } from "electron-native-speech"
 import { IPC_CHANNELS } from "./index"
+import { getMissingUsageDescriptionMessage } from "./macos-usage-descriptions"
 
 export function registerSpeechHandlers(ipcMain: IpcMain, webContents: WebContents): () => void {
   const sessions = new Map<string, SpeechSession>()
@@ -35,19 +35,24 @@ export function registerSpeechHandlers(ipcMain: IpcMain, webContents: WebContent
 
   ipcMain.handle(IPC_CHANNELS.GET_AVAILABILITY, () => getSpeechAvailability())
 
-  ipcMain.handle(IPC_CHANNELS.TRANSCRIBE_FILE, (_e, options) => transcribeFile(options))
+  ipcMain.handle(IPC_CHANNELS.TRANSCRIBE_FILE, (_e, options) => {
+    const speechUsageIssue = getMissingUsageDescriptionMessage("speech")
+    if (speechUsageIssue) {
+      throw new Error(speechUsageIssue)
+    }
+
+    return transcribeFile(options)
+  })
 
   ipcMain.handle(IPC_CHANNELS.SESSION_START, async (_e, sessionId: string, options) => {
-    // Request microphone permission from the Electron (parent) process first.
-    // On macOS, TCC attributes permission to the responsible process — granting it
-    // here lets the SpeechHelper subprocess use the mic without crashing.
-    if (process.platform === "darwin") {
-      const granted = await systemPreferences.askForMediaAccess("microphone")
-      if (!granted) {
-        throw new Error(
-          "Microphone access denied. Grant access in System Settings → Privacy & Security → Microphone."
-        )
-      }
+    const speechUsageIssue = getMissingUsageDescriptionMessage("speech")
+    if (speechUsageIssue) {
+      throw new Error(speechUsageIssue)
+    }
+
+    const microphoneUsageIssue = getMissingUsageDescriptionMessage("microphone")
+    if (microphoneUsageIssue) {
+      throw new Error(microphoneUsageIssue)
     }
 
     let session = sessions.get(sessionId)

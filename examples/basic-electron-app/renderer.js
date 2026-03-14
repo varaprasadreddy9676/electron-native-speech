@@ -41,12 +41,20 @@ transcribeBtn.addEventListener("click", async () => {
       return
     }
 
-    transcriptEl.innerHTML = result.segments.map((seg) => `
+    const fullText = result.segments
+      .map((seg) => String(seg.text ?? "").trim())
+      .filter(Boolean)
+      .join(" ")
+
+    transcriptEl.innerHTML = `
+      <p class="hint">${fullText ? esc(fullText) : "Transcript returned segment timing, but the segment text was empty."}</p>
+      ${result.segments.map((seg, index) => `
       <div class="segment">
         <span class="ts">${formatMs(seg.startMs)}</span>
-        <span>${esc(seg.text)}</span>
+        <span>${esc(String(seg.text ?? "").trim() || `[segment ${index + 1}: empty text]`)}</span>
       </div>
-    `).join("")
+    `).join("")}
+    `
   } catch (err) {
     transcriptEl.innerHTML = `<p class="err">Error: ${esc(err.message)}</p>`
   } finally {
@@ -121,9 +129,10 @@ startBtn.addEventListener("click", async () => {
 
 stopBtn.addEventListener("click", async () => {
   if (!session) return
+  const activeSession = session
   stopBtn.disabled = true
-  await session.stop()
-  await session.dispose()
+  await activeSession.stop()
+  await activeSession.dispose()
 })
 
 // ── Helpers ───────────────────────────────────────────────────────────────────

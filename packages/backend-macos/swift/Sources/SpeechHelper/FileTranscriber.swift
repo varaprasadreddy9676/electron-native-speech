@@ -89,9 +89,6 @@ func handleTranscribeFile(id: String, command: [String: Any]) {
     // Build and run the recognition request
     let request = SFSpeechURLRecognitionRequest(url: recognitionURL)
     request.shouldReportPartialResults = false
-    if recognizer.supportsOnDeviceRecognition {
-        request.requiresOnDeviceRecognition = true
-    }
 
     let doneSema = DispatchSemaphore(value: 0)
     var segments: [[String: Any]] = []
@@ -108,7 +105,7 @@ func handleTranscribeFile(id: String, command: [String: Any]) {
         guard let result = result else { return }
         if result.isFinal {
             let best = result.bestTranscription
-            segments = best.segments.enumerated().map { idx, seg in
+            let rawSegments = best.segments.enumerated().map { idx, seg in
                 var item: [String: Any] = [
                     "id": String(idx),
                     "startMs": Int(seg.timestamp * 1000),
@@ -118,6 +115,28 @@ func handleTranscribeFile(id: String, command: [String: Any]) {
                 if seg.confidence > 0 { item["confidence"] = Double(seg.confidence) }
                 return item
             }
+
+            let hasVisibleSegmentText = rawSegments.contains { segment in
+                guard let text = segment["text"] as? String else { return false }
+                return !text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+            }
+
+            if hasVisibleSegmentText {
+                segments = rawSegments
+            } else {
+                let formatted = best.formattedString.trimmingCharacters(in: .whitespacesAndNewlines)
+                if !formatted.isEmpty {
+                    segments = [[
+                        "id": "0",
+                        "startMs": 0,
+                        "endMs": Int((best.segments.last.map { $0.timestamp + $0.duration } ?? 0) * 1000),
+                        "text": formatted,
+                    ]]
+                } else {
+                    segments = rawSegments
+                }
+            }
+
             if let last = best.segments.last {
                 durationMs = (last.timestamp + last.duration) * 1000
             }
