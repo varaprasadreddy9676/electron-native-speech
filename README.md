@@ -1,105 +1,208 @@
 # electron-native-speech
 
-Native OS speech transcription for Electron apps — fast, local, no cloud required.
+[![npm](https://img.shields.io/npm/v/electron-native-speech?color=blue)](https://www.npmjs.com/package/electron-native-speech)
+[![macOS](https://img.shields.io/badge/macOS-13%2B-lightgrey?logo=apple)](https://developer.apple.com/documentation/speech)
+[![Electron](https://img.shields.io/badge/Electron-28%2B-47848F?logo=electron)](https://electronjs.org)
+[![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
 
-- **macOS:** Apple Speech framework (`SFSpeechRecognizer` + `AVFoundation`)
-- **Windows:** planned — Rust backend using Windows Speech SDK
-- No API keys. No network. No latency from the cloud.
+**Use native macOS speech transcription in Electron with one API.**
+
+No API keys. No network requests. No cloud costs. No manual build steps.
+The prebuilt binary ships with the package — `npm install` is all you need.
 
 ---
 
-## Features
+## Why this exists
 
-- **File transcription** — transcribe local audio/video files with timestamps
-- **Live microphone** — real-time dictation with interim results
-- **Electron-safe** — works with `contextIsolation: true`, `nodeIntegration: false`
-- **Offline-capable** — on-device recognition when the platform supports it
-- **Automatic format handling** — converts unsupported containers via AVFoundation
+| | electron-native-speech | Web Speech API | OpenAI Whisper API | Local Whisper/Vosk |
+|---|---|---|---|---|
+| **Works offline** | ✅ | ❌ requires Chrome + internet | ❌ cloud only | ✅ |
+| **No API keys** | ✅ | ✅ | ❌ | ✅ |
+| **Works in Electron** | ✅ | ⚠️ unreliable in Electron | ✅ | ✅ |
+| **File transcription** | ✅ | ❌ | ✅ | ✅ |
+| **Live microphone** | ✅ | ✅ | ❌ | ✅ |
+| **Word timestamps** | ✅ | ❌ | ✅ | varies |
+| **Zero per-call overhead** | ✅ persistent process | — | network RTT | model load time |
+| **Bundle size added** | ~280 KB binary | 0 | 0 | 100 MB+ model |
+
+**electron-native-speech wraps Apple's `SFSpeechRecognizer` + `AVFoundation` in an Electron-safe, context-isolated API.** The Swift helper starts once and stays alive — no spawn overhead on subsequent calls.
+
+---
+
+## Compatibility
+
+| | Supported |
+|---|---|
+| **macOS** | 13 Ventura and later |
+| **Architectures** | Apple Silicon (arm64) + Intel (x86_64) via universal binary |
+| **Electron** | 28 and later |
+| **Node.js** | 18 and later |
+| **Windows / Linux** | Not yet (planned: Windows Speech SDK backend) |
+
+---
+
+## Install
+
+```bash
+npm install electron-native-speech electron-native-speech-backend-macos electron-native-speech-preload
+```
+
+That's it. The prebuilt `SpeechHelper` binary (~280 KB universal) ships inside `electron-native-speech-backend-macos`. No compilation step needed.
+
+> **Building from source?** If you want to build the Swift binary yourself (e.g. for CI or code signing workflows), see [CONTRIBUTING.md](CONTRIBUTING.md).
 
 ---
 
 ## Quickstart
 
-### 1. Install
-
-```bash
-npm install electron-native-speech electron-native-speech-backend-macos
-```
-
-> On first install, run the Swift build step once:
-> ```bash
-> cd node_modules/electron-native-speech-backend-macos
-> npm run build:swift
-> ```
-> This compiles the native `SpeechHelper` binary (~130KB).
-
-### 2. Main process
+### 1. Main process
 
 ```ts
 // main.ts
-import { ipcMain } from "electron"
+import { app, BrowserWindow, ipcMain } from "electron"
 import { registerSpeechHandlers } from "electron-native-speech-preload/main-handlers"
 
-const cleanup = registerSpeechHandlers(ipcMain, win.webContents)
-app.on("before-quit", cleanup)
+let win: BrowserWindow
+
+app.whenReady().then(() => {
+  win = new BrowserWindow({
+    webPreferences: {
+      preload: path.join(__dirname, "preload.js"),
+      contextIsolation: true,
+      nodeIntegration: false,
+    },
+  })
+
+  const cleanupSpeech = registerSpeechHandlers(ipcMain, win.webContents)
+  app.on("before-quit", cleanupSpeech)
+})
 ```
 
-### 3. Preload script
+### 2. Preload script
 
 ```ts
 // preload.ts
 import { exposeElectronSpeech } from "electron-native-speech-preload"
+
 exposeElectronSpeech() // exposes window.electronSpeech
 ```
 
-### 4. Renderer
+### 3. Renderer — file transcription
 
 ```ts
-// Transcribe a file
 const result = await window.electronSpeech.transcribeFile({
   filePath: "/path/to/recording.m4a",
   locale: "en-US",
 })
-for (const seg of result.segments) {
-  console.log(`[${seg.startMs}ms] ${seg.text}`)
-}
 
-// Live microphone
+for (const seg of result.segments) {
+  console.log(`[${seg.startMs}ms – ${seg.endMs}ms] ${seg.text}`)
+}
+```
+
+### 4. Renderer — live microphone
+
+```ts
 const session = window.electronSpeech.createSpeechSession()
-session.on("result", (r) => console.log(r.text, r.isFinal))
+
+session.on("result", (r) => {
+  console.log(r.text, r.isFinal ? "(final)" : "(interim)")
+})
+session.on("error", (e) => console.error(e))
+
 await session.start({ locale: "en-US", interimResults: true, continuous: true })
-// later…
+
+// Later…
 await session.stop()
 await session.dispose()
 ```
 
 ---
 
-## How it works
+## API reference
 
-```
-Renderer UI
-    │  window.electronSpeech.*
-Preload Bridge (contextBridge)
-    │  ipcRenderer.invoke(...)
-IPC
-    │  ipcMain.handle(...)
-Main Process (Node.js)
-    │  stdin/stdout JSON
-SpeechHelper (Swift binary — persistent process)
-    │
-Apple Speech.framework + AVFoundation
+### `window.electronSpeech.getSpeechAvailability()`
+
+```ts
+getSpeechAvailability(): Promise<SpeechAvailability>
+
+interface SpeechAvailability {
+  available: boolean
+  reason?: string   // present when available === false
+}
 ```
 
-The Swift helper starts once and stays alive — subsequent calls have zero spawn overhead.
+Checks whether speech recognition is authorized and available on the current device.
+
+---
+
+### `window.electronSpeech.transcribeFile(options)`
+
+```ts
+transcribeFile(options: FileTranscriptionOptions): Promise<FileTranscriptionResult>
+
+interface FileTranscriptionOptions {
+  filePath: string
+  locale?: string   // e.g. "en-US" (default: system locale)
+}
+
+interface FileTranscriptionResult {
+  segments: TranscriptSegment[]
+}
+
+interface TranscriptSegment {
+  id: number
+  startMs: number
+  endMs: number
+  text: string
+  confidence: number   // 0–1
+}
+```
+
+---
+
+### `window.electronSpeech.createSpeechSession()`
+
+```ts
+createSpeechSession(): SpeechSession
+
+interface SpeechSession {
+  start(options: SpeechSessionStartOptions): Promise<void>
+  stop(): Promise<void>
+  abort(): Promise<void>
+  dispose(): Promise<void>
+  on(event: "result", handler: (result: LiveSpeechResult) => void): this
+  on(event: "state", handler: (state: SpeechSessionState) => void): this
+  on(event: "error", handler: (error: SpeechError) => void): this
+  on(event: "stopped", handler: () => void): this
+}
+
+interface SpeechSessionStartOptions {
+  locale?: string         // e.g. "en-US"
+  interimResults?: boolean
+  continuous?: boolean
+}
+
+interface LiveSpeechResult {
+  text: string
+  isFinal: boolean
+  segments: TranscriptSegment[]
+}
+
+type SpeechSessionState = "idle" | "starting" | "listening" | "stopping" | "stopped" | "error"
+```
 
 ---
 
 ## Supported input formats
 
-Directly recognized: `m4a`, `mp3`, `wav`, `aiff`, `aac`, `caf`, `mp4`, `mov`
+| Format | Support |
+|---|---|
+| `.wav`, `.m4a`, `.mp3`, `.aac`, `.aiff`, `.caf` | Direct (AVFoundation native) |
+| `.mp4`, `.mov` | Direct (AVFoundation native) |
+| `.webm`, `.ogg`, and others | Auto-converted via AVFoundation export |
 
-Auto-converted via AVFoundation: `webm`, `ogg`, and any other container AVFoundation can read.
+Electron's `MediaRecorder` produces WebM+Opus — this is handled automatically.
 
 ---
 
@@ -108,22 +211,70 @@ Auto-converted via AVFoundation: `webm`, `ogg`, and any other container AVFounda
 Add to your app's `Info.plist`:
 
 ```xml
+<!-- Required for file transcription and live speech -->
 <key>NSSpeechRecognitionUsageDescription</key>
-<string>Used for transcribing audio in this app.</string>
+<string>This app uses speech recognition to transcribe audio.</string>
 
+<!-- Required for live microphone only -->
 <key>NSMicrophoneUsageDescription</key>
-<string>Used for live speech recognition.</string>
+<string>This app accesses the microphone for live speech recognition.</string>
 ```
+
+macOS will prompt the user the first time speech recognition is used. The user can manage this in **System Settings → Privacy & Security → Speech Recognition**.
 
 ---
 
-## Demo app
+## How it works
+
+```
+Renderer (contextIsolation: true, nodeIntegration: false)
+    │  window.electronSpeech.*
+    │
+Preload script (contextBridge)
+    │  ipcRenderer.invoke(...)
+    │
+IPC boundary
+    │  ipcMain.handle(...)
+    │
+Main process (Node.js)
+    │  newline-delimited JSON over stdin/stdout
+    │
+SpeechHelper (Swift binary — persistent process, started once)
+    │
+Apple Speech.framework + AVFoundation
+```
+
+The Swift helper process starts once when the first call arrives and remains alive for the app's lifetime. Zero spawn overhead for subsequent calls.
+
+---
+
+## Packaged builds (electron-builder)
+
+When you package your app, include the `SpeechHelper` binary in your app's resources:
+
+```js
+// electron-builder.config.js
+module.exports = {
+  extraResources: [
+    {
+      from: "node_modules/electron-native-speech-backend-macos/bin/SpeechHelper",
+      to: "SpeechHelper",
+    },
+  ],
+}
+```
+
+The backend automatically looks in `process.resourcesPath` when running packaged, and falls back to the local `bin/` directory in development.
+
+---
+
+## Demo
 
 ```bash
-# Build the Swift binary first (once)
-npm run build:swift
-
-# Run the demo
+git clone https://github.com/varaprasadreddy9676/electron-native-speech
+cd electron-native-speech
+npm install
+npm run build:swift   # one-time: builds the Swift binary
 npm run dev --workspace packages/demo-electron
 ```
 
@@ -134,20 +285,27 @@ npm run dev --workspace packages/demo-electron
 ```
 packages/
   core/             — TypeScript SDK (npm: electron-native-speech)
-  backend-macos/    — macOS Swift backend
-  preload/          — Electron contextBridge helpers
-  demo-electron/    — Demo app
+  backend-macos/    — macOS Swift backend + prebuilt binary
+  preload/          — Electron contextBridge + IPC handlers
+  demo-electron/    — Demo Electron app
 docs/
-  PRD.md            — Product requirements
+  PRD.md            — Product requirements document
 ```
 
 ---
 
 ## Roadmap
 
-- **v1** — macOS file transcription *(done)*
-- **v1.1** — macOS live microphone *(done)*
-- **v2** — Windows backend (Rust + Windows.Media.SpeechRecognition)
+- [x] v1 — macOS file transcription
+- [x] v1.1 — macOS live microphone
+- [ ] v2 — Windows backend (Rust + Windows.Media.SpeechRecognition)
+- [ ] v2.1 — Code signing for packaged builds
+
+---
+
+## Contributing
+
+See [CONTRIBUTING.md](CONTRIBUTING.md) for how to build the Swift binary from source, run the demo, and submit changes.
 
 ---
 
