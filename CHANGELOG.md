@@ -6,6 +6,23 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ---
 
+## [0.1.3] — 2026-03-14
+
+### Changed
+
+- **macOS helper architecture** — run `SpeechHelper` as a launchable app bundle and communicate over a local socket instead of direct child-process execution
+- **Reliable permissions** — request Speech Recognition and Microphone access from the helper app context so live transcription and file transcription do not abort under macOS TCC
+- **Live session bridge** — return a plain bridged session object from the preload layer so `createSpeechSession()` works correctly through `contextBridge`
+- **File transcription behavior** — remove the on-device-only requirement for uploaded audio files so MP3 transcription returns text instead of empty segments
+- **Example app stability** — fix session stop/dispose ordering and patch Electron's dev `Info.plist` automatically for local example and demo runs
+- **Release packages** — publish updated `electron-native-speech`, `electron-native-speech-preload`, and `electron-native-speech-backend-macos` patch releases with the macOS fixes
+
+### Fixed
+
+- `SpeechHelper exited (code=null, signal=SIGABRT)` during speech authorization and file transcription on macOS
+- Live transcription no-op behavior caused by stripped prototype methods across the preload bridge
+- Empty-text transcript segments returned for uploaded MP3 files with clear speech content
+
 ## [0.1.0] — 2024-03-14
 
 ### Added

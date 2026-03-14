@@ -1,6 +1,6 @@
 {
   "name": "electron-native-speech",
-  "version": "0.1.2",
+  "version": "0.1.3",
   "description": "Native OS speech transcription for Electron apps — fast, local, no cloud required",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
@@ -41,7 +41,7 @@
     }
   },
   "optionalDependencies": {
-    "electron-native-speech-backend-macos": ">=0.1.1",
-    "electron-native-speech-preload": ">=0.1.1"
+    "electron-native-speech-backend-macos": ">=0.1.5",
+    "electron-native-speech-preload": ">=0.1.3"
   }
 }

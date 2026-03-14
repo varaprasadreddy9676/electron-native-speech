@@ -1,6 +1,6 @@
 {
   "name": "electron-native-speech-backend-macos",
-  "version": "0.1.4",
+  "version": "0.1.5",
   "description": "macOS backend for electron-native-speech using Apple Speech framework",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
@@ -22,6 +22,6 @@
     "typescript": "^5.4.0"
   },
   "dependencies": {
-    "electron-native-speech": "*"
+    "electron-native-speech": "^0.1.3"
   }
 }

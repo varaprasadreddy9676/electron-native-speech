@@ -1,6 +1,6 @@
 {
   "name": "electron-native-speech-preload",
-  "version": "0.1.2",
+  "version": "0.1.3",
   "description": "Electron preload bridge for electron-native-speech",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",

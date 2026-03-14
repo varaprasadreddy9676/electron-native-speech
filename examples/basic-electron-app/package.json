@@ -10,8 +10,8 @@
     "start": "electron ."
   },
   "dependencies": {
-    "electron-native-speech": "^0.1.1",
-    "electron-native-speech-backend-macos": "^0.1.4"
+    "electron-native-speech": "^0.1.3",
+    "electron-native-speech-backend-macos": "^0.1.5"
   },
   "devDependencies": {
     "electron": "^28.0.0"
