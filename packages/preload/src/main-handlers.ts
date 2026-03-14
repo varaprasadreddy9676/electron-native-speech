@@ -15,6 +15,7 @@
  */
 
 import type { IpcMain, WebContents } from "electron"
+import { systemPreferences } from "electron"
 import {
   getSpeechAvailability,
   transcribeFile,
@@ -37,6 +38,18 @@ export function registerSpeechHandlers(ipcMain: IpcMain, webContents: WebContent
   ipcMain.handle(IPC_CHANNELS.TRANSCRIBE_FILE, (_e, options) => transcribeFile(options))
 
   ipcMain.handle(IPC_CHANNELS.SESSION_START, async (_e, sessionId: string, options) => {
+    // Request microphone permission from the Electron (parent) process first.
+    // On macOS, TCC attributes permission to the responsible process — granting it
+    // here lets the SpeechHelper subprocess use the mic without crashing.
+    if (process.platform === "darwin") {
+      const granted = await systemPreferences.askForMediaAccess("microphone")
+      if (!granted) {
+        throw new Error(
+          "Microphone access denied. Grant access in System Settings → Privacy & Security → Microphone."
+        )
+      }
+    }
+
     let session = sessions.get(sessionId)
     if (!session) {
       session = await createSpeechSession()

@@ -79,6 +79,17 @@ final class LiveSession {
         let inputNode = engine.inputNode
         let recordingFormat = inputNode.outputFormat(forBus: 0)
 
+        // Guard against an invalid format — happens when mic permission hasn't been
+        // granted to the responsible Electron process, or no audio input device exists.
+        // installTap with 0 channels/Hz throws an NSException (SIGABRT); check first.
+        guard recordingFormat.sampleRate > 0, recordingFormat.channelCount > 0 else {
+            emitError(
+                code: "permission-denied",
+                message: "Microphone is not accessible. Grant microphone access to the app in System Settings → Privacy & Security → Microphone, then try again."
+            )
+            return
+        }
+
         // Install a tap — the callback fires on AVAudioEngine's internal thread
         // with very low latency (typically 10–20ms buffer sizes)
         inputNode.installTap(onBus: 0, bufferSize: 1024, format: recordingFormat) { [weak self] buffer, _ in
