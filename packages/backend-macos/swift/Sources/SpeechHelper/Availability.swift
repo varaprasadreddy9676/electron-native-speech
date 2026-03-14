@@ -1,5 +1,6 @@
 import Speech
 import AVFoundation
+import Foundation
 
 func handleCheckAvailability(id: String) {
     // Check authorization status without triggering a prompt
@@ -54,5 +55,34 @@ func requestMicAuthorization() async -> Bool {
         AVCaptureDevice.requestAccess(for: .audio) { granted in
             continuation.resume(returning: granted)
         }
+    }
+}
+
+func writeAuthorizationResult(filePath: String, status: SFSpeechRecognizerAuthorizationStatus) {
+    let payload: [String: Any] = [
+        "status": authorizationStatusString(status),
+        "authorized": status == .authorized,
+    ]
+
+    guard let data = try? JSONSerialization.data(withJSONObject: payload, options: [.prettyPrinted]) else {
+        return
+    }
+
+    let url = URL(fileURLWithPath: filePath)
+    try? data.write(to: url, options: [.atomic])
+}
+
+func authorizationStatusString(_ status: SFSpeechRecognizerAuthorizationStatus) -> String {
+    switch status {
+    case .authorized:
+        return "authorized"
+    case .denied:
+        return "denied"
+    case .restricted:
+        return "restricted"
+    case .notDetermined:
+        return "notDetermined"
+    @unknown default:
+        return "unknown"
     }
 }

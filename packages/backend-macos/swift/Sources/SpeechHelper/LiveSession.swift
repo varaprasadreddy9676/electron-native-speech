@@ -30,32 +30,23 @@ final class LiveSession {
     func start() {
         sendEvent(id: sessionId, event: "state", payload: ["state": "starting"])
 
-        // Request permissions from the main thread.
-        // SFSpeechRecognizer.requestAuthorization called from a background queue
-        // causes SIGABRT on macOS 15 in subprocess contexts.
-        DispatchQueue.main.async { [weak self] in
-            guard let self else { return }
-            SFSpeechRecognizer.requestAuthorization { [weak self] speechStatus in
-                guard let self else { return }
+        let speechStatus = SFSpeechRecognizer.authorizationStatus()
+        guard speechStatus == .authorized else {
+            emitError(
+                code: "permission-denied",
+                message: "Speech recognition permission denied"
+            )
+            return
+        }
 
-                guard speechStatus == .authorized else {
-                    self.emitError(
-                        code: "permission-denied",
-                        message: "Speech recognition permission denied"
-                    )
-                    return
-                }
+        let micStatus = AVCaptureDevice.authorizationStatus(for: .audio)
+        guard micStatus == .authorized else {
+            emitError(code: "permission-denied", message: "Microphone permission denied")
+            return
+        }
 
-                AVCaptureDevice.requestAccess(for: .audio) { granted in
-                    guard granted else {
-                        self.emitError(code: "permission-denied", message: "Microphone permission denied")
-                        return
-                    }
-                    DispatchQueue.global(qos: .userInteractive).async {
-                        self.startRecognition()
-                    }
-                }
-            }
+        DispatchQueue.global(qos: .userInteractive).async {
+            self.startRecognition()
         }
     }
 

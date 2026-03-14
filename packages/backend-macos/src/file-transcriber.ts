@@ -2,6 +2,8 @@ import * as fs from "fs"
 import type { FileTranscriptionOptions, FileTranscriptionResult } from "electron-native-speech"
 import { SpeechRecognitionError } from "electron-native-speech"
 import { getHelperProcess } from "./helper-process"
+import { getMissingUsageDescriptionMessage } from "./macos-usage-descriptions"
+import { ensureSpeechPermission } from "./speech-permission"
 
 type RawSegment = {
   id: string
@@ -41,7 +43,16 @@ export async function transcribeFile(
     })
   }
 
+  const usageDescriptionIssue = getMissingUsageDescriptionMessage("speech")
+  if (usageDescriptionIssue) {
+    throw new SpeechRecognitionError({
+      code: "backend-failure",
+      message: usageDescriptionIssue,
+    })
+  }
+
   const helper = getHelperProcess()
+  await ensureSpeechPermission()
   await helper.start()
 
   let raw: unknown

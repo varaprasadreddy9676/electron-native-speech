@@ -1,5 +1,6 @@
 import type { SpeechAvailability } from "electron-native-speech"
 import { getHelperProcess } from "./helper-process"
+import { getMissingUsageDescriptionMessage } from "./macos-usage-descriptions"
 
 type AvailabilityResponse = {
   type: "result"
@@ -19,6 +20,17 @@ export async function checkAvailability(): Promise<SpeechAvailability> {
     }
   }
 
+  const speechUsageIssue = getMissingUsageDescriptionMessage("speech")
+  if (speechUsageIssue) {
+    return {
+      available: false,
+      platform: "darwin",
+      reason: speechUsageIssue,
+    }
+  }
+
+  const microphoneUsageIssue = getMissingUsageDescriptionMessage("microphone")
+
   const helper = getHelperProcess()
 
   try {
@@ -36,9 +48,9 @@ export async function checkAvailability(): Promise<SpeechAvailability> {
     return {
       available: raw.available,
       platform: raw.platform ?? "darwin",
-      mode: raw.mode,
+      mode: microphoneUsageIssue ? "file" : raw.mode,
       reason: raw.reason,
-      details: raw.details,
+      details: microphoneUsageIssue ? { microphoneWarning: microphoneUsageIssue } : raw.details,
     }
   } catch {
     return {

@@ -34,14 +34,26 @@ export class HelperProcess extends EventEmitter {
 
   private get binaryPath(): string {
     // In development: packages/backend-macos/bin/SpeechHelper
-    // In packaged app: resources/SpeechHelper (set by electron-builder extraResources)
+    // In packaged app: resources/SpeechHelper.app/Contents/MacOS/SpeechHelper
+    // or resources/SpeechHelper (legacy binary-only layout)
     const candidates = [
       // packaged Electron app (process.resourcesPath is injected by Electron)
       (process as NodeJS.Process & { resourcesPath?: string }).resourcesPath
+        ? path.join(
+            (process as NodeJS.Process & { resourcesPath?: string }).resourcesPath!,
+            "SpeechHelper.app",
+            "Contents",
+            "MacOS",
+            "SpeechHelper"
+          )
+        : null,
+      (process as NodeJS.Process & { resourcesPath?: string }).resourcesPath
         ? path.join((process as NodeJS.Process & { resourcesPath?: string }).resourcesPath!, "SpeechHelper")
         : null,
+      path.join(__dirname, "..", "bin", "SpeechHelper.app", "Contents", "MacOS", "SpeechHelper"),
       // workspace development
       path.join(__dirname, "..", "bin", "SpeechHelper"),
+      path.join(__dirname, "..", "..", "bin", "SpeechHelper.app", "Contents", "MacOS", "SpeechHelper"),
       // running from dist/
       path.join(__dirname, "..", "..", "bin", "SpeechHelper"),
     ].filter(Boolean) as string[]

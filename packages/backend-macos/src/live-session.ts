@@ -8,6 +8,8 @@ import type {
 } from "electron-native-speech"
 import { SpeechRecognitionError } from "electron-native-speech"
 import { getHelperProcess, HelperMessage } from "./helper-process"
+import { getMissingUsageDescriptionMessage } from "./macos-usage-descriptions"
+import { ensureSpeechPermission } from "./speech-permission"
 
 type SessionEventMessage = HelperMessage & {
   type: "event"
@@ -31,9 +33,20 @@ export class MacOSLiveSpeechSession implements SpeechSession {
       })
     }
 
+    const speechUsageIssue = getMissingUsageDescriptionMessage("speech")
+    if (speechUsageIssue) {
+      throw new SpeechRecognitionError({ code: "backend-failure", message: speechUsageIssue })
+    }
+
+    const microphoneUsageIssue = getMissingUsageDescriptionMessage("microphone")
+    if (microphoneUsageIssue) {
+      throw new SpeechRecognitionError({ code: "backend-failure", message: microphoneUsageIssue })
+    }
+
     this.setState("starting")
 
     const helper = getHelperProcess()
+    await ensureSpeechPermission()
     await helper.start()
 
     // Send the start command and get back a streaming session ID
@@ -56,6 +69,7 @@ export class MacOSLiveSpeechSession implements SpeechSession {
           if (msg.state) this.setState(msg.state)
           break
         case "error":
+          this.setState("error")
           if (msg.error) this.emitter.emit("error", msg.error)
           break
         case "stopped":
