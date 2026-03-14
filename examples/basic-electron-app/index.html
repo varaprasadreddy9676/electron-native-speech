@@ -1,0 +1,282 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta http-equiv="Content-Security-Policy"
+    content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'" />
+  <title>electron-native-speech example</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", system-ui, sans-serif;
+      background: #0f0f11;
+      color: #e8e8f0;
+      padding: 32px;
+      display: flex;
+      flex-direction: column;
+      gap: 20px;
+      min-height: 100vh;
+    }
+
+    h1 { font-size: 18px; font-weight: 600; letter-spacing: -0.02em; }
+    h2 { font-size: 13px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.07em; color: #888; }
+
+    #availability {
+      font-size: 13px;
+      color: #888;
+      padding: 10px 14px;
+      background: #1a1a1f;
+      border: 1px solid #2a2a32;
+      border-radius: 8px;
+    }
+    #availability.ok { color: #6bffb0; border-color: #1a4a32; }
+    #availability.error { color: #ff6b6b; border-color: #4a1a1a; }
+
+    .card {
+      background: #1a1a1f;
+      border: 1px solid #2a2a32;
+      border-radius: 10px;
+      padding: 20px;
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+    }
+
+    .row { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
+
+    button {
+      padding: 8px 16px;
+      border-radius: 8px;
+      border: none;
+      cursor: pointer;
+      font-size: 14px;
+      font-weight: 500;
+      transition: opacity 0.15s;
+    }
+    button:disabled { opacity: 0.4; cursor: not-allowed; }
+    .primary { background: #7c6aff; color: #fff; }
+    .primary:hover:not(:disabled) { background: #9a8bff; }
+    .secondary { background: #2a2a32; color: #e8e8f0; }
+    .secondary:hover:not(:disabled) { background: #33333d; }
+    .danger { background: #3a1a1a; color: #ff6b6b; }
+    .danger:hover:not(:disabled) { background: #4a2020; }
+
+    #file-path {
+      font-size: 12px;
+      color: #888;
+      padding: 6px 10px;
+      background: #0f0f11;
+      border: 1px solid #2a2a32;
+      border-radius: 6px;
+      flex: 1;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      min-width: 0;
+    }
+
+    #transcript, #live-transcript {
+      background: #0f0f11;
+      border: 1px solid #2a2a32;
+      border-radius: 8px;
+      padding: 14px;
+      min-height: 140px;
+      font-size: 14px;
+      line-height: 1.7;
+      overflow-y: auto;
+      max-height: 260px;
+    }
+
+    .segment { display: flex; gap: 12px; padding: 2px 0; }
+    .ts { font-size: 11px; color: #666; min-width: 48px; padding-top: 3px; font-variant-numeric: tabular-nums; }
+    .interim { color: #888; font-style: italic; }
+    .hint { color: #555; font-size: 13px; }
+    .err { color: #ff6b6b; }
+
+    #live-status {
+      font-size: 12px;
+      padding: 3px 10px;
+      border-radius: 100px;
+      background: #2a2a32;
+      color: #888;
+    }
+    #live-status.listening { background: #3a1a1a; color: #ff6b6b; }
+  </style>
+</head>
+<body>
+
+  <h1>electron-native-speech</h1>
+
+  <div id="availability">Checking availability…</div>
+
+  <!-- FILE TRANSCRIPTION -->
+  <div class="card">
+    <h2>File Transcription</h2>
+
+    <div class="row">
+      <button id="pick-btn" class="secondary">Choose file…</button>
+      <div id="file-path">No file selected</div>
+    </div>
+
+    <div class="row">
+      <button id="transcribe-btn" class="primary" disabled>Transcribe</button>
+    </div>
+
+    <div id="transcript"><p class="hint">Select a file and click Transcribe.</p></div>
+  </div>
+
+  <!-- LIVE MICROPHONE -->
+  <div class="card">
+    <h2>Live Microphone</h2>
+
+    <div class="row">
+      <span id="live-status">idle</span>
+      <button id="start-btn" class="primary">Start Listening</button>
+      <button id="stop-btn" class="danger" disabled>Stop</button>
+    </div>
+
+    <div id="live-transcript"><p class="hint">Click "Start Listening" and speak.</p></div>
+  </div>
+
+  <script>
+    // ── Availability ──────────────────────────────────────────────────────────
+
+    const avEl = document.getElementById("availability")
+    window.electronSpeech.getSpeechAvailability().then((av) => {
+      avEl.textContent = av.available ? "Speech recognition is available ✓" : `Unavailable: ${av.reason}`
+      avEl.className = av.available ? "ok" : "error"
+    }).catch((err) => {
+      avEl.textContent = `Error: ${err.message}`
+      avEl.className = "error"
+    })
+
+    // ── File transcription ────────────────────────────────────────────────────
+
+    let selectedFile = null
+
+    const pickBtn = document.getElementById("pick-btn")
+    const filePathEl = document.getElementById("file-path")
+    const transcribeBtn = document.getElementById("transcribe-btn")
+    const transcriptEl = document.getElementById("transcript")
+
+    pickBtn.addEventListener("click", async () => {
+      const filePath = await window.dialog.openFile()
+      if (!filePath) return
+      selectedFile = filePath
+      filePathEl.textContent = filePath
+      transcribeBtn.disabled = false
+    })
+
+    transcribeBtn.addEventListener("click", async () => {
+      transcribeBtn.disabled = true
+      transcribeBtn.textContent = "Transcribing…"
+      transcriptEl.innerHTML = "<p class='hint'>Recognizing speech…</p>"
+
+      try {
+        const result = await window.electronSpeech.transcribeFile({ filePath: selectedFile })
+
+        if (!result.segments || result.segments.length === 0) {
+          transcriptEl.innerHTML = "<p class='hint'>No speech detected.</p>"
+          return
+        }
+
+        transcriptEl.innerHTML = result.segments.map((seg) => `
+          <div class="segment">
+            <span class="ts">${formatMs(seg.startMs)}</span>
+            <span>${esc(seg.text)}</span>
+          </div>
+        `).join("")
+      } catch (err) {
+        transcriptEl.innerHTML = `<p class="err">Error: ${esc(err.message)}</p>`
+      } finally {
+        transcribeBtn.disabled = false
+        transcribeBtn.textContent = "Transcribe"
+      }
+    })
+
+    // ── Live microphone ───────────────────────────────────────────────────────
+
+    const liveStatusEl = document.getElementById("live-status")
+    const startBtn = document.getElementById("start-btn")
+    const stopBtn = document.getElementById("stop-btn")
+    const liveEl = document.getElementById("live-transcript")
+
+    let session = null
+    let interimP = null
+
+    startBtn.addEventListener("click", async () => {
+      startBtn.disabled = true
+      stopBtn.disabled = false
+      liveEl.innerHTML = ""
+
+      session = window.electronSpeech.createSpeechSession()
+
+      session.on("state", (state) => {
+        liveStatusEl.textContent = state
+        liveStatusEl.className = state === "listening" ? "listening" : ""
+        if (state === "stopped" || state === "error") {
+          startBtn.disabled = false
+          stopBtn.disabled = true
+          session = null
+          interimP = null
+        }
+      })
+
+      session.on("result", (r) => {
+        if (!r.isFinal) {
+          if (!interimP) {
+            interimP = document.createElement("p")
+            interimP.className = "interim"
+            liveEl.appendChild(interimP)
+          }
+          interimP.textContent = r.text
+        } else {
+          if (interimP) { interimP.remove(); interimP = null }
+          if (r.text.trim()) {
+            const div = document.createElement("div")
+            div.className = "segment"
+            div.innerHTML = `<span class="ts"></span><span>${esc(r.text)}</span>`
+            liveEl.appendChild(div)
+            liveEl.scrollTop = liveEl.scrollHeight
+          }
+        }
+      })
+
+      session.on("error", (e) => {
+        const p = document.createElement("p")
+        p.className = "err"
+        p.textContent = `Error: ${e.message}`
+        liveEl.appendChild(p)
+      })
+
+      try {
+        await session.start({ locale: "en-US", interimResults: true, continuous: true })
+      } catch (err) {
+        liveEl.innerHTML = `<p class="err">Failed to start: ${esc(err.message)}</p>`
+        startBtn.disabled = false
+        stopBtn.disabled = true
+      }
+    })
+
+    stopBtn.addEventListener("click", async () => {
+      if (!session) return
+      stopBtn.disabled = true
+      await session.stop()
+      await session.dispose()
+    })
+
+    // ── Helpers ───────────────────────────────────────────────────────────────
+
+    function formatMs(ms) {
+      const s = Math.floor(ms / 1000)
+      return `${Math.floor(s / 60)}:${String(s % 60).padStart(2, "0")}`
+    }
+
+    function esc(str) {
+      return String(str).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;")
+    }
+  </script>
+</body>
+</html>

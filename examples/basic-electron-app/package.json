@@ -1,0 +1,16 @@
+{
+  "name": "electron-native-speech-example",
+  "version": "1.0.0",
+  "description": "Minimal example: native macOS speech transcription in Electron",
+  "main": "main.js",
+  "private": true,
+  "scripts": {
+    "start": "electron ."
+  },
+  "dependencies": {
+    "electron-native-speech": "^0.1.1"
+  },
+  "devDependencies": {
+    "electron": "^28.0.0"
+  }
+}

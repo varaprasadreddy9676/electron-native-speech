@@ -1,3 +1,5 @@
+> ⭐ If this saves you from a cloud API bill or a broken Web Speech hack, star the repo — it helps others find it.
+
 # electron-native-speech
 
 [![npm](https://img.shields.io/npm/v/electron-native-speech?color=blue)](https://www.npmjs.com/package/electron-native-speech)
@@ -44,10 +46,12 @@ The prebuilt binary ships with the package — `npm install` is all you need.
 ## Install
 
 ```bash
-npm install electron-native-speech electron-native-speech-backend-macos electron-native-speech-preload
+npm install electron-native-speech
 ```
 
-That's it. The prebuilt `SpeechHelper` binary (~280 KB universal) ships inside `electron-native-speech-backend-macos`. No compilation step needed.
+That's it. `electron-native-speech-backend-macos` and `electron-native-speech-preload` are installed automatically as optional dependencies.
+
+The prebuilt `SpeechHelper` binary (~280 KB universal) ships inside the backend package — no compilation step needed.
 
 > **Building from source?** If you want to build the Swift binary yourself (e.g. for CI or code signing workflows), see [CONTRIBUTING.md](CONTRIBUTING.md).
 
@@ -268,15 +272,20 @@ The backend automatically looks in `process.resourcesPath` when running packaged
 
 ---
 
-## Demo
+## Runnable example
+
+The fastest way to see it working:
 
 ```bash
 git clone https://github.com/varaprasadreddy9676/electron-native-speech
-cd electron-native-speech
+cd electron-native-speech/examples/basic-electron-app
 npm install
-npm run build:swift   # one-time: builds the Swift binary
-npm run dev --workspace packages/demo-electron
+npm start
 ```
+
+Opens a window with file transcription and live microphone — no build step needed.
+
+See [`examples/basic-electron-app/`](examples/basic-electron-app/) for the source (plain JS, ~100 lines).
 
 ---
 
@@ -287,7 +296,9 @@ packages/
   core/             — TypeScript SDK (npm: electron-native-speech)
   backend-macos/    — macOS Swift backend + prebuilt binary
   preload/          — Electron contextBridge + IPC handlers
-  demo-electron/    — Demo Electron app
+  demo-electron/    — Full-featured demo app (monorepo)
+examples/
+  basic-electron-app/ — Minimal standalone example (plain JS, no build step)
 docs/
   PRD.md            — Product requirements document
 ```
