@@ -6,6 +6,16 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ---
 
+## [0.1.6] — 2026-03-15
+
+### Changed
+
+- **macOS helper launch fallback** — keep the current `SpeechHelper.app` launch path as the default and add a LaunchServices fallback for newer macOS releases that reject helper speech usage under the standard launch mode
+- **Fallback override** — allow forcing the LaunchServices path with `ENS_SPEECH_HELPER_LAUNCH_MODE=launchservices` for debugging or affected macOS environments
+
+### Fixed
+
+- Future macOS compatibility risk where `SpeechHelper` can fail or be killed under stricter app launch and code-signing enforcement
 ## [0.1.5] — 2026-03-14
 
 ### Changed

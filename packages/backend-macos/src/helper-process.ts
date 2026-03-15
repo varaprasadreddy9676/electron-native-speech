@@ -17,6 +17,12 @@ type PendingRequest = {
   timeout: ReturnType<typeof setTimeout>
 }
 
+type LaunchMode = "standard" | "launchservices-fallback"
+
+const FORCED_LAUNCH_MODE = process.env.ENS_SPEECH_HELPER_LAUNCH_MODE === "launchservices"
+  ? "launchservices-fallback"
+  : "standard"
+
 export class HelperProcess extends EventEmitter {
   private launcher: ChildProcess | null = null
   private socket: net.Socket | null = null
@@ -25,6 +31,7 @@ export class HelperProcess extends EventEmitter {
   private _ready = false
   private _starting: Promise<void> | null = null
   private _idCounter = 0
+  private launchMode: LaunchMode = FORCED_LAUNCH_MODE
 
   private get appPath(): string {
     const candidates = [
@@ -50,76 +57,95 @@ export class HelperProcess extends EventEmitter {
 
     this._starting = (async () => {
       const appPath = this.appPath
-      const port = await getAvailablePort()
 
-      await new Promise<void>((resolve, reject) => {
-        let settled = false
-        const readyTimeout = setTimeout(() => {
-          cleanup()
-          reject(new Error("SpeechHelper did not become ready within 8 seconds"))
-        }, 8000)
-
-        const cleanup = () => {
-          clearTimeout(readyTimeout)
-          this.removeListener("ready", onReady)
+      try {
+        await this.startWithMode(appPath, this.launchMode)
+      } catch (error) {
+        if (this.launchMode === "standard") {
+          this.emit("log", {
+            level: "warn",
+            message: `SpeechHelper standard launch failed, retrying with LaunchServices fallback: ${error instanceof Error ? error.message : String(error)}`,
+          })
+          this.launchMode = "launchservices-fallback"
+          await this.startWithMode(appPath, this.launchMode)
+        } else {
+          this._starting = null
+          throw error
         }
+      }
+    })()
 
-        const onReady = () => {
-          if (settled) return
+    return this._starting
+  }
+
+  private async startWithMode(appPath: string, mode: LaunchMode): Promise<void> {
+    const port = await getAvailablePort()
+
+    await new Promise<void>((resolve, reject) => {
+      let settled = false
+      const readyTimeout = setTimeout(() => {
+        cleanup()
+        reject(new Error("SpeechHelper did not become ready within 8 seconds"))
+      }, 8000)
+
+      const cleanup = () => {
+        clearTimeout(readyTimeout)
+        this.removeListener("ready", onReady)
+      }
+
+      const onReady = () => {
+        if (settled) return
+        settled = true
+        cleanup()
+        this._ready = true
+        this._starting = null
+        resolve()
+      }
+
+      this.once("ready", onReady)
+
+      this.launcher = spawn("/usr/bin/open", getLaunchArgs(appPath, port, mode), {
+        stdio: ["ignore", "ignore", "pipe"],
+      })
+
+      this.launcher.stderr?.setEncoding("utf8")
+      this.launcher.stderr?.on("data", (chunk: string) => {
+        for (const line of chunk.split("\n")) {
+          if (line.trim()) {
+            this.emit("log", { level: "debug", message: line.trim() })
+          }
+        }
+      })
+
+      this.launcher.once("error", (err) => {
+        if (settled) return
+        settled = true
+        cleanup()
+        this._starting = null
+        reject(err)
+      })
+
+      this.launcher.once("exit", (code, signal) => {
+        if (!settled && code !== 0) {
           settled = true
           cleanup()
-          this._ready = true
           this._starting = null
-          resolve()
+          reject(new Error(`open exited early (code=${code}, signal=${signal})`))
         }
+      })
 
-        this.once("ready", onReady)
-
-        this.launcher = spawn("/usr/bin/open", ["-n", appPath, "--args", "--port", String(port)], {
-          stdio: ["ignore", "ignore", "pipe"],
+      connectWithRetry(port, 8000)
+        .then((socket) => {
+          this.attachSocket(socket)
         })
-
-        this.launcher.stderr?.setEncoding("utf8")
-        this.launcher.stderr?.on("data", (chunk: string) => {
-          for (const line of chunk.split("\n")) {
-            if (line.trim()) {
-              this.emit("log", { level: "debug", message: line.trim() })
-            }
-          }
-        })
-
-        this.launcher.once("error", (err) => {
+        .catch((err) => {
           if (settled) return
           settled = true
           cleanup()
           this._starting = null
           reject(err)
         })
-
-        this.launcher.once("exit", (code, signal) => {
-          if (!settled && code !== 0) {
-            settled = true
-            cleanup()
-            this._starting = null
-            reject(new Error(`open exited early (code=${code}, signal=${signal})`))
-          }
-        })
-
-        connectWithRetry(port, 8000)
-          .then((socket) => {
-            this.attachSocket(socket)
-          })
-          .catch((err) => {
-            if (settled) return
-            settled = true
-            cleanup()
-            this._starting = null
-            reject(err)
-          })
-      })
-    })()
-
-    return this._starting
+    })
   }
 
   private attachSocket(socket: net.Socket): void {
@@ -138,6 +164,13 @@ export class HelperProcess extends EventEmitter {
       this._ready = false
       this._starting = null
       this.socket = null
+      if (this.pending.size > 0 && this.launchMode === "standard") {
+        this.launchMode = "launchservices-fallback"
+        this.emit("log", {
+          level: "warn",
+          message: "SpeechHelper connection closed unexpectedly; switching future launches to LaunchServices fallback mode.",
+        })
+      }
       for (const [, req] of this.pending) {
         clearTimeout(req.timeout)
         req.reject(new Error("SpeechHelper connection closed"))
@@ -287,6 +320,15 @@ function connectWithRetry(port: number, timeoutMs: number): Promise<net.Socket> 
 
     attempt()
   })
+}
+
+function getLaunchArgs(appPath: string, port: number, mode: LaunchMode): string[] {
+  if (mode === "launchservices-fallback") {
+    // Fallback for newer macOS releases where helper processes can require a stricter app-style launch path.
+    return ["-W", "-a", appPath, "--args", "--port", String(port)]
+  }
+
+  return ["-n", appPath, "--args", "--port", String(port)]
 }
 
 let _instance: HelperProcess | null = null
